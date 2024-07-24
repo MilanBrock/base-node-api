@@ -4,12 +4,16 @@ This is a TypeScript Node.js API application.
 
 ## Installation
 After cloning the repository, run the following command to install the necessary dependencies:
-```npm install```  
+```
+npm install
+```  
 
 
 ## Setup
 Create a .env file in the root directory of the project based on the provided .env.example file. This file contains environment variables required for the application.
-```cp .env.example .env```
+```
+cp .env.example .env
+```
 Fill in the necessary values in the .env file.  
 
 
