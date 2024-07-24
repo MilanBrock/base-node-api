@@ -37,6 +37,7 @@ GRANT ALL PRIVILEGES ON DATABASE your_database_name TO your_username;
 ```
 Update the .env file:
 Add your database configuration details (username, password, database name) to the .env file.
+Remember to also add your OpenAI API key in the case OpenAI calls are requested.
 
 
 ## Starting the Application
