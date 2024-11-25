@@ -13,26 +13,22 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - name: "Checkout code"
-        uses: actions/checkout@v3
-
       - name: "Get diff of the pull request"
         id: get_diff
         shell: bash
-        env:
-          DEFAULT_BRANCH: "${{ github.event.repository.default_branch }}"
-          PULL_REQUEST_HEAD_REF: "${{ github.event.pull_request.head.ref }}"
         run: |-
-          # Fetch the default branch
-          git fetch origin "${{ env.DEFAULT_BRANCH }}"
+          # Download the pull request diff using the diff_url
+          curl -L -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3.diff" \
+            ${{ github.event.pull_request.url }} > diff_raw.txt
+
           # Exclude binary files (e.g., images) from diff
-          git diff "origin/${{ env.DEFAULT_BRANCH }}" ":(exclude)*.png" ":(exclude)*.jpg" > "diff.txt"
+          grep -vE 'diff --git a/.*\.(png|jpg|jpeg|gif|pdf)$' diff_raw.txt > diff.txt
+
           # Output the diff to GitHub Actions output
-          {
-            echo "pull_request_diff<<EOF";
-            cat "diff.txt";
-            echo 'EOF';
-          } >> $GITHUB_OUTPUT
+          echo "pull_request_diff<<EOF" >> $GITHUB_OUTPUT
+          cat diff.txt >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: "Code Review"
         uses: ./codeReview
