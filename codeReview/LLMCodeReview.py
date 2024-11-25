@@ -4,7 +4,7 @@ from typing import List
 
 import click
 import requests
-import openai
+from openai import OpenAI  # Modified import
 from loguru import logger
 
 
@@ -60,7 +60,7 @@ def get_review(
 ):
     """Get a review"""
     openai_api_key = os.getenv("API_KEY")
-    openai.api_key = openai_api_key
+    client = OpenAI(api_key=openai_api_key)  # Modified line
 
     # Chunk the prompt
     chunked_diff_list = chunk_string(input_string=diff, chunk_size=prompt_chunk_size)
@@ -77,7 +77,7 @@ Diff:
 {chunked_diff}
 """
 
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(  # Modified line
             model=model,
             messages=[
                 {"role": "system", "content": "You are a helpful assistant."},
@@ -86,7 +86,7 @@ Diff:
             max_tokens=max_tokens,
             temperature=temperature
         )
-        review_result = response["choices"][0]["message"]["content"]
+        review_result = response.choices[0].message.content
         chunked_reviews.append(review_result)
 
     # If the chunked reviews are only one, return it
@@ -102,7 +102,7 @@ and line numbers.
 Changes:
 {changes_text}
 """
-    summary_response = openai.ChatCompletion.create(
+    summary_response = client.chat.completions.create(  # Modified line
         model=model,
         messages=[
             {"role": "system", "content": "You are a helpful assistant."},
@@ -111,7 +111,7 @@ Changes:
         max_tokens=max_tokens,
         temperature=temperature
     )
-    summarized_review = summary_response["choices"][0]["message"]["content"]
+    summarized_review = summary_response.choices[0].message.content
     return chunked_reviews, summarized_review
 
 
