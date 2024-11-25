@@ -16,7 +16,7 @@ jobs:
       - name: "Checkout PR Head"
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # Fetch all commits in the PR branch
+          fetch-depth: 0  # Fetch all commits in the pull request
           ref: refs/pull/${{ github.event.pull_request.number }}/head
 
       - name: "Fetch Base Branch"
@@ -27,7 +27,7 @@ jobs:
         id: get_diff
         shell: bash
         run: |
-          # Generate the diff with increased context lines (e.g., 10)
+          # Generate the diff with increased context lines  (amount of lines above & under the change). This is the number after "-U"
           git diff -U10 origin/${{ github.event.pull_request.base.ref }} HEAD \
             -- . ':(exclude)*.png' ':(exclude)*.jpg' ':(exclude)*.jpeg' ':(exclude)*.gif' ':(exclude)*.pdf' > diff.txt
 
