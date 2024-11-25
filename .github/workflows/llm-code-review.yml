@@ -46,8 +46,6 @@ jobs:
           githubPullRequestNumber: ${{ github.event.pull_request.number }}
           gitCommitHash: ${{ github.event.pull_request.head.sha }}
           model: "gpt-4o-mini"
-          temperature: "0.1"
-          maxTokens: "1000"
           pullRequestDiff: ${{ steps.get_diff.outputs.pull_request_diff }}
           pullRequestChunkSize: "3500"
           logLevel: "DEBUG"
