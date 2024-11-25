@@ -13,23 +13,23 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - name: "Checkout code"
+      - name: "Checkout PR Head"
         uses: actions/checkout@v3
         with:
-          # Fetch minimal history since we don't need the full repository
-          fetch-depth: 1
+          fetch-depth: 0  # Fetch all commits in the PR branch
+          ref: refs/pull/${{ github.event.pull_request.number }}/head
 
-      - name: "Get diff of the pull request"
+      - name: "Fetch Base Branch"
+        run: |
+          git fetch origin ${{ github.event.pull_request.base.ref }} --depth=1
+
+      - name: "Generate Diff with Increased Context"
         id: get_diff
         shell: bash
-        run: |-
-          # Download the pull request diff using the diff_url
-          curl -L -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github.v3.diff" \
-            ${{ github.event.pull_request.url }} > diff_raw.txt
-
-          # Exclude binary files (e.g., images) from diff
-          grep -vE 'diff --git a/.*\.(png|jpg|jpeg|gif|pdf)$' diff_raw.txt > diff.txt
+        run: |
+          # Generate the diff with increased context lines (e.g., 10)
+          git diff -U10 origin/${{ github.event.pull_request.base.ref }} HEAD \
+            -- . ':(exclude)*.png' ':(exclude)*.jpg' ':(exclude)*.jpeg' ':(exclude)*.gif' ':(exclude)*.pdf' > diff.txt
 
           # Output the diff to GitHub Actions output
           echo "pull_request_diff<<EOF" >> $GITHUB_OUTPUT
