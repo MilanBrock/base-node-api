@@ -1,0 +1,51 @@
+stages:
+  - review
+
+build_docker_image:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+  script:
+    - docker info
+    - docker build -t code-review-image .
+  artifacts:
+    paths:
+      - code-review-image.tar
+  when: always
+
+code_review:
+  stage: review
+  image: docker:latest
+  services:
+    - docker:dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+    OPENAI_API_KEY: $OPENAI_API_KEY
+    GITLAB_TOKEN: $GITLAB_TOKEN
+  dependencies:
+    - build_docker_image
+  script:
+    - git fetch origin $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
+    # To change the context size, edit the number following "-U", for a context length of 10 lines (10 lines above, 10 lines under), use "-U10"
+    - git diff -U10 origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME HEAD \
+        -- . ':(exclude)*.png' ':(exclude)*.jpg' ':(exclude)*.jpeg' ':(exclude)*.gif' ':(exclude)*.pdf' > diff.txt    - docker load -i code-review-image.tar
+    - docker run --rm \
+        -e API_KEY="$OPENAI_API_KEY" \
+        -e GITLAB_TOKEN="$GITLAB_TOKEN" \
+        -e CI_PROJECT_ID="$CI_PROJECT_ID" \
+        -e CI_MERGE_REQUEST_IID="$CI_MERGE_REQUEST_IID" \
+        -v $(pwd)/diff.txt:/app/diff.txt \
+        # -e DIFF_CONTENT="$DIFF_CONTENT" \
+        code-review-image \
+        --model "gpt-4o-mini" \
+        --diff-chunk-size "3500" \
+        --log-level "DEBUG"
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: on_success
+    - when: never

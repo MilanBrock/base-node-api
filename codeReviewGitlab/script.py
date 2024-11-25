@@ -12,34 +12,35 @@ def check_required_env_vars():
     """Check required environment variables"""
     required_env_vars = [
         "API_KEY",
-        "GITHUB_TOKEN",
-        "GITHUB_REPOSITORY",
-        "GITHUB_PULL_REQUEST_NUMBER",
-        "GIT_COMMIT_HASH",
+        "GITLAB_TOKEN",
+        "CI_PROJECT_ID",
+        "CI_MERGE_REQUEST_IID",
+        "DIFF_CONTENT",
     ]
-    for required_env_var in required_env_vars:
-        if os.getenv(required_env_var) is None:
-            raise ValueError(f"{required_env_var} is not set")
+    for var in required_env_vars:
+        if os.getenv(var) is None:
+            raise ValueError(f"{var} is not set")
 
 
-def create_a_comment_to_pull_request(
-        github_token: str,
-        github_repository: str,
-        pull_request_number: int,
-        git_commit_hash: str,
-        body: str):
-    """Create a comment to a pull request"""
+def create_a_comment_to_merge_request(
+        gitlab_token: str,
+        gitlab_project_id: str,
+        merge_request_iid: int,
+        body: str,
+        gitlab_api_url: str = 'https://gitlab.com'):
+    """Create a comment to a merge request in GitLab"""
     headers = {
-        "Accept": "application/vnd.github.v3.patch",
-        "authorization": f"Bearer {github_token}"
+        "PRIVATE-TOKEN": gitlab_token
     }
     data = {
-        "body": body,
-        "commit_id": git_commit_hash,
-        "event": "COMMENT"
+        "body": body
     }
-    url = f"https://api.github.com/repos/{github_repository}/pulls/{pull_request_number}/reviews"
-    response = requests.post(url, headers=headers, data=json.dumps(data))
+    url = f"{gitlab_api_url}/api/v4/projects/{gitlab_project_id}/merge_requests/{merge_request_iid}/notes"
+    response = requests.post(url, headers=headers, data=data)
+    if response.status_code != 201:
+        logger.error(f"Failed to create comment: {response.text}")
+    else:
+        logger.info("Successfully posted the code review comment.")
     return response
 
 
@@ -83,20 +84,24 @@ def get_review(
 
 
 @click.command()
-@click.option("--diff", type=click.STRING, required=True, help="Pull request diff")
 @click.option("--diff-chunk-size", type=click.INT, required=False, default=3500, help="Pull request diff")
-@click.option("--model", type=click.STRING, required=False, default="gpt-3.5-turbo", help="OpenAI model")
+@click.option("--model", type=click.STRING, required=False, default="gpt-4o-mini", help="OpenAI model")
 @click.option("--log-level", type=click.STRING, required=False, default="INFO", help="Log level")
 def main(
-        diff: str,
+        diff_file: str,
         diff_chunk_size: int,
         model: str,
         log_level: str
 ):
     # Set log level
-    logger.level(log_level)
+    logger.remove()
+    logger.add(lambda msg: print(msg, flush=True), level=log_level.upper())
     # Check if necessary environment variables are set or not
     check_required_env_vars()
+
+    # Read the diff content
+    with open(diff_file, "r") as file:
+        diff = file.read()
 
     # Request a code review
     code_review = get_review(
@@ -104,13 +109,12 @@ def main(
         model=model,
         prompt_chunk_size=diff_chunk_size
     )
-   
-    # Create a comment to a pull request
-    create_a_comment_to_pull_request(
-        github_token=os.getenv("GITHUB_TOKEN"),
-        github_repository=os.getenv("GITHUB_REPOSITORY"),
-        pull_request_number=int(os.getenv("GITHUB_PULL_REQUEST_NUMBER")),
-        git_commit_hash=os.getenv("GIT_COMMIT_HASH"),
+
+    # Create a comment to a merge request
+    create_a_comment_to_merge_request(
+        gitlab_token=os.getenv("GITLAB_TOKEN"),
+        gitlab_project_id=os.getenv("CI_PROJECT_ID"),
+        merge_request_iid=int(os.getenv("CI_MERGE_REQUEST_IID")),
         body=code_review
     )
 
