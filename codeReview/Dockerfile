@@ -9,4 +9,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the entrypoint script
 COPY LLMCodeReview.py .
 
-ENTRYPOINT ["python", "/app/entrypoint.py"]
+ENTRYPOINT ["python", "/app/LLMCodeReview.py"]

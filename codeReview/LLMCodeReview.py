@@ -4,7 +4,7 @@ from typing import List
 
 import click
 import requests
-from openai import OpenAI
+import openai
 from loguru import logger
 
 
@@ -60,24 +60,24 @@ def get_review(
 ):
     """Get a review"""
     openai_api_key = os.getenv("API_KEY")
-    client = OpenAI(api_key=openai_api_key)
-    
+    openai.api_key = openai_api_key
+
     # Chunk the prompt
     chunked_diff_list = chunk_string(input_string=diff, chunk_size=prompt_chunk_size)
     chunked_reviews = []
 
     for chunked_diff in chunked_diff_list:
         prompt = f"""Provide a concise summary of the bug found in the code, describing its characteristics, 
-        location, and potential effects on the overall functionality and performance of the application.
-        Present the potential issues and errors first, followed by the most important findings, in your summary.
-        Include a block of code / diff in the summary and the line numbers where applicable.
+location, and potential effects on the overall functionality and performance of the application.
+Present the potential issues and errors first, followed by the most important findings, in your summary.
+Include a block of code / diff in the summary and the line numbers where applicable.
 
-        Diff:
+Diff:
 
-        {chunked_diff}
-        """
+{chunked_diff}
+"""
 
-        response = client.chat.completions.create(
+        response = openai.ChatCompletion.create(
             model=model,
             messages=[
                 {"role": "system", "content": "You are a helpful assistant."},
@@ -94,14 +94,15 @@ def get_review(
         return chunked_reviews, chunked_reviews[0]
 
     # Summarize the chunked reviews
+    changes_text = "\n".join(chunked_reviews)
     summary_prompt = f"""Summarize the following file changes in a pull request, focusing on major modifications, 
-    additions, deletions, and any significant updates within the files. Include a block of code / diff 
-    and line numbers.
+additions, deletions, and any significant updates within the files. Include a block of code / diff 
+and line numbers.
 
-    Changes:
-    {"\n".join(chunked_reviews)}
-    """
-    summary_response = client.chat.completions.create(
+Changes:
+{changes_text}
+"""
+    summary_response = openai.ChatCompletion.create(
         model=model,
         messages=[
             {"role": "system", "content": "You are a helpful assistant."},
@@ -120,17 +121,17 @@ def format_review_comment(summarized_review: str, chunked_reviews: List[str]) ->
         return summarized_review
     unioned_reviews = "\n".join(chunked_reviews)
     review = f"""<details>
-    <summary>{summarized_review}</summary>
-    {unioned_reviews}
-    </details>
-    """
+<summary>{summarized_review}</summary>
+{unioned_reviews}
+</details>
+"""
     return review
 
 
 @click.command()
 @click.option("--diff", type=click.STRING, required=True, help="Pull request diff")
 @click.option("--diff-chunk-size", type=click.INT, required=False, default=3500, help="Pull request diff")
-@click.option("--model", type=click.STRING, required=False, default="gpt-4o-mini", help="OpenAI model")
+@click.option("--model", type=click.STRING, required=False, default="gpt-3.5-turbo", help="OpenAI model")
 @click.option("--temperature", type=click.FLOAT, required=False, default=0.1, help="Temperature")
 @click.option("--max-tokens", type=click.INT, required=False, default=250, help="Max tokens")
 @click.option("--log-level", type=click.STRING, required=False, default="INFO", help="Log level")
