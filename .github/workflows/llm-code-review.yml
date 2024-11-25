@@ -13,6 +13,12 @@ jobs:
       contents: read
       pull-requests: write
     steps:
+      - name: "Checkout code"
+        uses: actions/checkout@v3
+        with:
+          # Fetch minimal history since we don't need the full repository
+          fetch-depth: 1
+
       - name: "Get diff of the pull request"
         id: get_diff
         shell: bash
