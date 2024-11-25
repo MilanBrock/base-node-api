@@ -86,7 +86,7 @@ Diff:
             max_tokens=max_tokens,
             temperature=temperature
         )
-        review_result = response["choices"][0]["message"]["content"]
+        review_result = response.choices[0].message.content
         chunked_reviews.append(review_result)
 
     # If the chunked reviews are only one, return it
@@ -111,7 +111,7 @@ Changes:
         max_tokens=max_tokens,
         temperature=temperature
     )
-    summarized_review = summary_response["choices"][0]["message"]["content"]
+    summarized_review = summary_response.choices[0].message.content
     return chunked_reviews, summarized_review
 
 
