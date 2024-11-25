@@ -21,17 +21,9 @@ inputs:
     required: true
     default: "${{ github.event.pull_request.head.sha }}"
   model:
-    description: "OpenAI model to use (e.g., 'gpt-3.5-turbo', 'gpt-4')"
+    description: "OpenAI model to use"
     required: true
-    default: "gpt-3.5-turbo"
-  maxTokens:
-    description: "The maximum number of tokens to generate in the completion."
-    required: false
-    default: "250"
-  temperature:
-    description: "Sampling temperature between 0 and 2; higher values make output more random."
-    required: false
-    default: "0.1"
+    default: "gpt-4o-mini"
   pullRequestDiff:
     description: "Pull request diff"
     required: true
@@ -54,8 +46,6 @@ runs:
     GIT_COMMIT_HASH: ${{ inputs.gitCommitHash }}
   args:
     - "--model=${{ inputs.model }}"
-    - "--temperature=${{ inputs.temperature }}"
-    - "--max-tokens=${{ inputs.maxTokens }}"
     - "--diff-chunk-size=${{ inputs.pullRequestChunkSize }}"
     - "--diff=${{ inputs.pullRequestDiff }}"
     - "--log-level=${{ inputs.logLevel }}"
